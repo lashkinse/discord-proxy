@@ -66,7 +66,15 @@ var appOptions = app.Services.GetRequiredService<ProxyOptions>();
 app.Urls.Clear();
 app.Urls.Add($"http://0.0.0.0:{appOptions.Port}");
 app.Logger.LogInformation("Listening on port {Port}, database {Db}", appOptions.Port, appOptions.GetDbPath());
-app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging(options =>
+{
+    // Successes are already covered by business logs (Delivered etc.);
+    // HTTP-level lines only on errors to keep high-volume logs quiet.
+    options.GetLevel = (context, _, ex) =>
+        ex is not null || context.Response.StatusCode >= 500
+            ? LogEventLevel.Error
+            : LogEventLevel.Debug;
+});
 app.MapWebhookEndpoints();
 app.Run();
 
