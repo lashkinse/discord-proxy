@@ -6,7 +6,6 @@ cd /d "%~dp0"
 dotnet publish src\DiscordProxy -c Release -r win-x64 --self-contained --nologo -v q ^
   -p:PublishSingleFile=true ^
   -p:IncludeNativeLibrariesForSelfExtract=true ^
-  -p:DebugSymbols=false ^
   -o artifacts\publish
 if errorlevel 1 (
   echo BUILD FAILED
