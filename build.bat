@@ -6,9 +6,12 @@ cd /d "%~dp0"
 dotnet publish src\DiscordProxy -c Release -r win-x64 --self-contained --nologo -v q ^
   -p:PublishSingleFile=true ^
   -p:IncludeNativeLibrariesForSelfExtract=true ^
+  -p:DebugSymbols=false ^
   -o artifacts\publish
 if errorlevel 1 (
   echo BUILD FAILED
   exit /b 1
 )
+rem Self-contained exe never uses these publish leftovers.
+del /q "%~dp0artifacts\publish\web.config" "%~dp0artifacts\publish\DiscordProxy.staticwebassets.endpoints.json" 2>nul
 echo OK: %~dp0artifacts\publish\DiscordProxy.exe
