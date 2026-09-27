@@ -48,8 +48,10 @@ Point plugins at it by swapping only the host:
 
 ## Run as a Windows service
 
-`install_service.bat` (and `uninstall_service.bat`) wrap NSSM — needs
-NSSM on PATH and an administrator console. Manual equivalent:
+`setup/install_service.bat` (and `uninstall_service.bat`) wrap NSSM — needs
+NSSM on PATH and an administrator console. `build.bat` copies them next to
+the exe, so on the server you just run them from the publish folder.
+Manual equivalent:
 
 ```powershell
 nssm install DiscordProxy "C:\proxy\DiscordProxy.exe"

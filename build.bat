@@ -11,6 +11,7 @@ if errorlevel 1 (
   echo BUILD FAILED
   exit /b 1
 )
-rem Self-contained exe never uses these publish leftovers.
+rem Service scripts live next to the exe; drop publish leftovers it never uses.
+copy /y "%~dp0setup\*.bat" "%~dp0artifacts\publish\" >nul
 del /q "%~dp0artifacts\publish\web.config" "%~dp0artifacts\publish\DiscordProxy.staticwebassets.endpoints.json" 2>nul
 echo OK: %~dp0artifacts\publish\DiscordProxy.exe

@@ -4,7 +4,7 @@ rem Run from this folder after build.bat (uses artifacts\publish\DiscordProxy.ex
 setlocal
 
 set SERVICE_NAME=DiscordProxy
-set APP_DIR=%~dp0artifacts\publish\
+set APP_DIR=%~dp0
 set APP_EXE=%APP_DIR%DiscordProxy.exe
 set LOG_DIR=%APP_DIR%logs
 
