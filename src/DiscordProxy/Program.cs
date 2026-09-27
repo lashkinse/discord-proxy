@@ -68,8 +68,8 @@ app.Urls.Add($"http://0.0.0.0:{appOptions.Port}");
 app.Logger.LogInformation("Listening on port {Port}, database {Db}", appOptions.Port, appOptions.GetDbPath());
 app.UseSerilogRequestLogging(options =>
 {
-    // Successes are already covered by business logs (Delivered etc.);
-    // HTTP-level lines only on errors to keep high-volume logs quiet.
+    // Per-message lines live at Debug; HTTP-level lines only on errors
+    // to keep high-volume logs quiet.
     options.GetLevel = (context, _, ex) =>
         ex is not null || context.Response.StatusCode >= 500
             ? LogEventLevel.Error
