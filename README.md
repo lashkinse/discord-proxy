@@ -46,7 +46,10 @@ Point plugins at it by swapping only the host:
 .\build.bat   # -> artifacts/publish/DiscordProxy.exe
 ```
 
-## Run as a Windows service (NSSM)
+## Run as a Windows service
+
+`install_service.bat` (and `uninstall_service.bat`) wrap NSSM — needs
+NSSM on PATH and an administrator console. Manual equivalent:
 
 ```powershell
 nssm install DiscordProxy "C:\proxy\DiscordProxy.exe"
