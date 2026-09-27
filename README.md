@@ -48,19 +48,11 @@ Point plugins at it by swapping only the host:
 
 ## Run as a Windows service
 
-`install_service.bat` (and `uninstall_service.bat`) wrap NSSM — needs
-NSSM on PATH and an administrator console. `build.bat` copies them next to
-the exe, so on the server you just run them from the publish folder.
-Manual equivalent:
-
-```powershell
-nssm install DiscordProxy "C:\proxy\DiscordProxy.exe"
-nssm set DiscordProxy AppDirectory "C:\proxy"
-nssm set DiscordProxy AppStdout "C:\proxy\logs\service-out.log"
-nssm set DiscordProxy AppStderr "C:\proxy\logs\service-err.log"
-nssm set DiscordProxy Start SERVICE_AUTO_START
-nssm start DiscordProxy
-```
+`install_service.bat` (and `uninstall_service.bat`) use the bundled WinSW
+wrapper — no extra tools needed, just an administrator console. `build.bat`
+puts everything (`DiscordProxy.exe`, `DiscordProxyService.exe/.xml`, both
+scripts) into `artifacts/publish`; on the server you run the scripts from
+there. Service id is `DiscordProxySvc`.
 
 Keep `appsettings.json` next to the exe. Watch `GET /stats` (`dead`
 growing means Discord rejects something permanently).

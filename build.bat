@@ -11,7 +11,11 @@ if errorlevel 1 (
   echo BUILD FAILED
   exit /b 1
 )
-rem Service scripts live next to the exe; drop publish leftovers it never uses.
+rem Service wrapper + scripts live next to the exe; drop publish leftovers it never uses.
+copy /y "%~dp0service\DiscordProxyService.exe" "%~dp0artifacts\publish\" >nul
+copy /y "%~dp0service\DiscordProxyService.xml" "%~dp0artifacts\publish\" >nul
+copy /y "%~dp0install_service.bat" "%~dp0artifacts\publish\" >nul
+copy /y "%~dp0uninstall_service.bat" "%~dp0artifacts\publish\" >nul
 copy /y "%~dp0install_service.bat" "%~dp0artifacts\publish\" >nul
 copy /y "%~dp0uninstall_service.bat" "%~dp0artifacts\publish\" >nul
 del /q "%~dp0artifacts\publish\web.config" "%~dp0artifacts\publish\DiscordProxy.staticwebassets.endpoints.json" 2>nul

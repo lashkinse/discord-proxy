@@ -1,0 +1,12 @@
+<service>
+  <!-- %BASE% is the folder with this xml: the service works from any path. -->
+  <id>DiscordProxySvc</id>
+  <name>DiscordProxy</name>
+  <description>Discord webhook relay with queue and retries.</description>
+  <executable>%BASE%\DiscordProxy.exe</executable>
+  <workingdirectory>%BASE%</workingdirectory>
+  <logpath>%BASE%\logs</logpath>
+  <logmode>roll</logmode>
+  <startmode>Automatic</startmode>
+  <onfailure action="restart" delay="10 sec"/>
+</service>
