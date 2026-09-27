@@ -10,7 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, logger) => logger.ReadFrom.Configuration(context.Configuration));
 
-builder.Services.Configure<ProxyOptions>(builder.Configuration.GetSection(ProxyOptions.SectionName));
+builder.Services.AddOptions<ProxyOptions>()
+    .Bind(builder.Configuration.GetSection(ProxyOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.PostConfigure<ProxyOptions>(options =>
 {
     // Legacy overrides: plain PORT / DB_PATH win over the config file.

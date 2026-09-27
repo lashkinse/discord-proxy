@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace DiscordProxy;
 
 /// <summary>
@@ -11,30 +13,38 @@ public sealed class ProxyOptions
     public const string SectionName = "Proxy";
 
     /// <summary>HTTP server port.</summary>
+    [Range(1, 65535)]
     public int Port { get; set; } = 7070;
 
     /// <summary>
     /// Path to the SQLite queue file. Relative paths resolve
     /// against the application directory.
     /// </summary>
+    [Required(AllowEmptyStrings = false)]
     public string DbPath { get; set; } = "queue.db";
 
     /// <summary>Maximum request body size in bytes.</summary>
+    [Range(1024, 10 * 1024 * 1024)]
     public int MaxPayloadBytes { get; set; } = 64 * 1024;
 
     /// <summary>Maximum pending jobs; beyond this we answer 503.</summary>
+    [Range(1, 1_000_000)]
     public int MaxPending { get; set; } = 10_000;
 
     /// <summary>Minimum gap between sends to one webhook, in seconds (Discord limit is ~30/min).</summary>
+    [Range(0.01, 3600)]
     public double PaceSeconds { get; set; } = 2.2;
 
     /// <summary>Attempts on network errors and 5xx before a job goes dead.</summary>
+    [Range(1, 1000)]
     public int MaxAttemptsNet { get; set; } = 12;
 
     /// <summary>Attempts on 429 before a job goes dead.</summary>
+    [Range(1, 1000)]
     public int MaxAttempts429 { get; set; } = 25;
 
     /// <summary>Timeout of a single request to Discord, in seconds.</summary>
+    [Range(1, 300)]
     public double DiscordTimeoutSeconds { get; set; } = 15;
 
     public TimeSpan PacePerWebhook => TimeSpan.FromSeconds(PaceSeconds);

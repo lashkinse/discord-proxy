@@ -62,6 +62,10 @@ public static class WebhookEndpoints
                 !context.Request.ContentType.StartsWith("application/json", StringComparison.OrdinalIgnoreCase))
                 return Results.BadRequest(new { message = "Content-Type must be application/json" });
 
+            // Reject oversized bodies before reading them into memory.
+            if (context.Request.ContentLength > options.MaxPayloadBytes)
+                return Results.StatusCode(413);
+
             string rawBody;
             try
             {
