@@ -48,7 +48,7 @@ Point plugins at it by swapping only the host:
 
 ## Run as a Windows service
 
-`setup/install_service.bat` (and `uninstall_service.bat`) wrap NSSM — needs
+`install_service.bat` (and `uninstall_service.bat`) wrap NSSM — needs
 NSSM on PATH and an administrator console. `build.bat` copies them next to
 the exe, so on the server you just run them from the publish folder.
 Manual equivalent:
