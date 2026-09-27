@@ -20,9 +20,7 @@ builder.Host.UseSerilog((context, logger) =>
     }
 
     logger
-        .MinimumLevel.Information()
-        .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-        .MinimumLevel.Override("System.Net.Http.HttpClient", LogEventLevel.Warning)
+        .MinimumLevel.Warning()
         .Enrich.FromLogContext()
         .Enrich.WithMachineName()
         .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
