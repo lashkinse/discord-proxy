@@ -45,3 +45,9 @@ Point plugins at it by swapping only the host:
 ```powershell
 .\build.bat   # -> artifacts/publish/DiscordProxy.exe
 ```
+
+## Tests
+
+```powershell
+dotnet test   # 50 unit + integration tests, offline except one 401 round-trip
+```

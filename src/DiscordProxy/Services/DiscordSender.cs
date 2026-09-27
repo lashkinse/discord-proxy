@@ -83,7 +83,7 @@ public sealed class DiscordSender
     /// Discord reports seconds as a fraction in the {"retry_after": ...} body.
     /// The Retry-After header is not trusted: it has been seen in wrong units.
     /// </summary>
-    private static double ParseRetryAfter(string body, double fallbackSeconds = 5.0)
+    internal static double ParseRetryAfter(string body, double fallbackSeconds = 5.0)
     {
         try
         {
@@ -97,7 +97,7 @@ public sealed class DiscordSender
         return fallbackSeconds;
     }
 
-    private static bool IsGlobal(string body)
+    internal static bool IsGlobal(string body)
     {
         try
         {

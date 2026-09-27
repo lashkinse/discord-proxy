@@ -39,3 +39,6 @@ app.Logger.LogInformation("Listening on port {Port}, database {Db}", appOptions.
 app.UseSerilogRequestLogging();
 app.MapWebhookEndpoints();
 app.Run();
+
+/// <summary>Exposed for integration tests (WebApplicationFactory).</summary>
+public partial class Program { }
