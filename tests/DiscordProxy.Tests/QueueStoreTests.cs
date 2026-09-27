@@ -94,6 +94,46 @@ public sealed class QueueStoreTests : IDisposable
     }
 
     [Fact]
+    public void EnqueuePreservesQueryAndPayload()
+    {
+        const string query = "?thread_id=123";
+        const string payload = @"{""content"":""x""}";
+        var id = _store.Enqueue("111111111111111111", "tok", query, payload);
+        var job = Assert.Single(_store.GetDue(10));
+        Assert.Equal(id, job.Id);
+        Assert.Equal(query, job.Query);
+        Assert.Equal(payload, job.Payload);
+        Assert.Equal(0, job.Attempts);
+    }
+
+    [Fact]
+    public void GetDueRespectsLimit()
+    {
+        // One head job per webhook: three webhooks, limit two.
+        Enqueue(_store, "111111111111111111");
+        Enqueue(_store, "222222222222222222");
+        Enqueue(_store, "333333333333333333");
+        Assert.Equal(2, _store.GetDue(2).Count);
+    }
+
+    [Fact]
+    public void FuturePostponeHidesJobUntilDue()
+    {
+        var id = Enqueue(_store);
+        _store.Postpone(id, DateTime.UtcNow.AddHours(1), null);
+        Assert.Empty(_store.GetDue(10));
+        Assert.Equal(1, _store.PendingCount());
+    }
+
+    [Fact]
+    public void DeleteMissingIdIsNoOp()
+    {
+        Enqueue(_store);
+        _store.Delete(999_999_999);
+        Assert.Equal(1, _store.PendingCount());
+    }
+
+    [Fact]
     public void DeleteRemovesDeliveredJob()
     {
         var id = Enqueue(_store);

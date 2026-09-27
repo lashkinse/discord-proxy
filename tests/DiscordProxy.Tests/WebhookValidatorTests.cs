@@ -44,10 +44,14 @@ public sealed class WebhookValidatorTests
     [Theory]
     [InlineData(@"{""content"":""hi""}", true)]
     [InlineData(@"{""content"":""""}", false)]
+    [InlineData(@"{""content"":""   ""}", true)] // whitespace passes here; Discord decides
+    [InlineData(@"{""content"":123}", false)]
     [InlineData(@"{""embeds"":[{""description"":""x""}]}", true)]
     [InlineData(@"{""embeds"":[]}", false)]
+    [InlineData(@"{""embeds"":""nope""}", false)]
     [InlineData(@"{""components"":[{""type"":1}]}", true)]
     [InlineData(@"{""poll"":{}}", true)]
+    [InlineData(@"{""poll"":123}", false)]
     [InlineData(@"{}", false)]
     public void PayloadNeedsAtLeastOneMessageField(string json, bool valid)
     {

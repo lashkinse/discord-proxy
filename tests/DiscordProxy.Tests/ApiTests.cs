@@ -88,4 +88,35 @@ public sealed class ApiTests : IAsyncLifetime
             $"/api/webhooks/abc/{FakeToken}", new { content = "hello" });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
+
+    [Fact]
+    public async Task WrongContentTypeIsRejected()
+    {
+        var response = await _client.PostAsync(
+            $"/api/webhooks/{FakeId}/{FakeToken}",
+            new StringContent(@"{""content"":""hello""}", System.Text.Encoding.UTF8, "text/plain"));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task OversizeBodyIsRejectedWith413()
+    {
+        var big = new string('y', 70_000);
+        var response = await _client.PostAsync(
+            $"/api/webhooks/{FakeId}/{FakeToken}",
+            new StringContent(@"{""content"":""" + big + @"""}", System.Text.Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RealWebhookInfoPassesThrough()
+    {
+        // Read-only: hits the real Discord API but posts nothing.
+        const string realId = "1553762945471742045";
+        const string realToken = "NHIEjMFXM6uiWVISvC19up4iY9CI2Eoag4qCa8az5U9bsBu3o7n4l4It307iH52SAHt-";
+        var response = await _client.GetAsync($"/api/webhooks/{realId}/{realToken}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("Captain Hook", body);
+    }
 }
