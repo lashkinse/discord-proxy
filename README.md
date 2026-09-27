@@ -48,11 +48,11 @@ Point plugins at it by swapping only the host:
 
 ## Run as a Windows service
 
-`install_service.bat` (and `uninstall_service.bat`) use the bundled WinSW
-wrapper — no extra tools needed, just an administrator console. `build.bat`
-puts everything (`DiscordProxy.exe`, `DiscordProxyService.exe/.xml`, both
-scripts) into `artifacts/publish`; on the server you run the scripts from
-there. Service id is `DiscordProxySvc`.
+`service/install_service.bat` (and `uninstall_service.bat`) use the bundled
+WinSW wrapper — no extra tools needed, just an administrator console.
+`build.bat` puts everything (`DiscordProxy.exe`, `DiscordProxyService.exe/.xml`,
+both scripts) into `artifacts/publish`; on the server you run the scripts
+from there. Service id is `DiscordProxySvc`.
 
 Keep `appsettings.json` next to the exe. Watch `GET /stats` (`dead`
 growing means Discord rejects something permanently).

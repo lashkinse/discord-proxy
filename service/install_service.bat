@@ -5,7 +5,6 @@ rem build.bat already copies everything into artifacts\publish.
 setlocal
 
 set WRAPPER=%~dp0DiscordProxyService.exe
-if not exist "%WRAPPER%" set WRAPPER=%~dp0artifacts\publish\DiscordProxyService.exe
 
 net session >nul 2>&1
 if errorlevel 1 (
