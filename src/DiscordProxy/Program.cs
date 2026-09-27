@@ -4,11 +4,34 @@ using DiscordProxy.Endpoints;
 using DiscordProxy.Services;
 using Microsoft.Extensions.Options;
 using Serilog;
+using Serilog.Events;
 
 // Entry point — composition only: settings, services, routes. No logic here.
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Host.UseSerilog((context, logger) => logger.ReadFrom.Configuration(context.Configuration));
+builder.Host.UseSerilog((context, logger) =>
+{
+    // Full control from JSON when present; sane defaults otherwise.
+    // (Branching avoids double sinks: config and code never stack.)
+    if (context.Configuration.GetSection("Serilog").Exists())
+    {
+        logger.ReadFrom.Configuration(context.Configuration);
+        return;
+    }
+
+    logger
+        .MinimumLevel.Information()
+        .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+        .MinimumLevel.Override("System.Net.Http.HttpClient", LogEventLevel.Warning)
+        .Enrich.FromLogContext()
+        .Enrich.WithMachineName()
+        .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+        .WriteTo.File(
+            "logs/proxy-.log",
+            rollingInterval: RollingInterval.Day,
+            retainedFileCountLimit: 14,
+            outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {SourceContext} :: {Message:lj}{NewLine}{Exception}");
+});
 
 builder.Services.AddOptions<ProxyOptions>()
     .Bind(builder.Configuration.GetSection(ProxyOptions.SectionName))
