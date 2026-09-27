@@ -30,7 +30,7 @@ builder.Host.UseSerilog((context, logger) =>
             outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
         .WriteTo.File(
             "logs/proxy-.log",
-            restrictedToMinimumLevel: LogEventLevel.Warning,
+            restrictedToMinimumLevel: LogEventLevel.Information,
             rollingInterval: RollingInterval.Day,
             retainedFileCountLimit: 14,
             outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {SourceContext} :: {Message:lj}{NewLine}{Exception}");
