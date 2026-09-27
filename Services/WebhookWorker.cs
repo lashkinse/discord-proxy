@@ -135,7 +135,8 @@ public sealed class WebhookWorker : BackgroundService
                 {
                     // Capped at 15 minutes.
                     var waitSeconds = Math.Min(5 * Math.Pow(2, job.Attempts), 900);
-                    _store.Postpone(job.Id, DateTime.UtcNow + TimeSpan.FromSeconds(waitSeconds), retryable.Error);
+                    var retryAt = DateTime.UtcNow + TimeSpan.FromSeconds(waitSeconds);
+                    _store.Postpone(job.Id, retryAt, retryable.Error);
                     _log.LogWarning("Retry job {JobId} in {Wait}s: {Error}", job.Id, waitSeconds, retryable.Error);
                 }
                 break;

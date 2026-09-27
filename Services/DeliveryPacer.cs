@@ -2,7 +2,7 @@ namespace DiscordProxy.Services;
 
 /// <summary>
 /// Enforces the minimum interval between sends to one address.
-/// A single worker plus ORDER BY id in the queue keeps message order.
+/// Combined with head-of-line selection in the queue, message order is kept.
 /// </summary>
 public sealed class DeliveryPacer
 {

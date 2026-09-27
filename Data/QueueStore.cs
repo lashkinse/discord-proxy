@@ -63,6 +63,7 @@ public sealed class QueueStore
               last_error TEXT
             );
             CREATE INDEX IF NOT EXISTS idx_queue_due ON queue(next_attempt_at, id);
+            CREATE INDEX IF NOT EXISTS idx_queue_webhook ON queue(webhook_id, id);
             DELETE FROM dead WHERE failed_at < datetime('now', '-7 days');
             """;
         command.ExecuteNonQuery();
@@ -110,14 +111,20 @@ public sealed class QueueStore
         return (long)(command.ExecuteScalar() ?? 0L);
     }
 
-    /// <summary>Jobs due for sending. Ordered by id, so message order is preserved.</summary>
+    /// <summary>
+    /// Jobs due for sending. Only the head (smallest id) of each webhook is
+    /// returned, so a waiting head blocks its webhook: message order survives
+    /// pacing and 429 retries. Ordered by id across webhooks.
+    /// </summary>
     public List<QueuedJob> GetDue(int limit)
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT id, webhook_id, token, query, payload, attempts FROM queue
-            WHERE next_attempt_at <= $now ORDER BY id LIMIT $limit;
+            SELECT id, webhook_id, token, query, payload, attempts FROM queue q
+            WHERE next_attempt_at <= $now
+              AND id = (SELECT MIN(id) FROM queue WHERE webhook_id = q.webhook_id)
+            ORDER BY id LIMIT $limit;
             """;
         command.Parameters.AddWithValue("$now", ToTimestamp(DateTime.UtcNow));
         command.Parameters.AddWithValue("$limit", limit);
