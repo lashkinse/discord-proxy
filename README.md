@@ -35,5 +35,5 @@ Point plugins at it by swapping only the host:
 ## Build a single exe
 
 ```powershell
-.\discord-proxy-cs\build-exe.bat   # -> discord-proxy-cs/publish/DiscordProxy.exe
+.\discord-proxy-cs\build.bat   # -> discord-proxy-cs/publish/DiscordProxy.exe
 ```
