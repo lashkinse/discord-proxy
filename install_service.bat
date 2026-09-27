@@ -4,7 +4,8 @@ rem Expects DiscordProxyService.exe + DiscordProxyService.xml next to the proxy 
 rem build.bat already copies everything into artifacts\publish.
 setlocal
 
-set WRAPPER=%~dp0artifacts\publish\DiscordProxyService.exe
+set WRAPPER=%~dp0DiscordProxyService.exe
+if not exist "%WRAPPER%" set WRAPPER=%~dp0artifacts\publish\DiscordProxyService.exe
 
 net session >nul 2>&1
 if errorlevel 1 (
@@ -14,7 +15,7 @@ if errorlevel 1 (
 )
 
 if not exist "%WRAPPER%" (
-  echo %WRAPPER% not found. Run build.bat first.
+  echo Service wrapper not found. Run build.bat first.
   pause
   exit /b 1
 )
