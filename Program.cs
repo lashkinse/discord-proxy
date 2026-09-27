@@ -3,9 +3,12 @@ using DiscordProxy.Data;
 using DiscordProxy.Endpoints;
 using DiscordProxy.Services;
 using Microsoft.Extensions.Options;
+using Serilog;
 
 // Entry point — composition only: settings, services, routes. No logic here.
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, logger) => logger.ReadFrom.Configuration(context.Configuration));
 
 builder.Services.Configure<ProxyOptions>(builder.Configuration.GetSection(ProxyOptions.SectionName));
 builder.Services.PostConfigure<ProxyOptions>(options =>
@@ -33,5 +36,6 @@ var appOptions = app.Services.GetRequiredService<ProxyOptions>();
 app.Urls.Clear();
 app.Urls.Add($"http://0.0.0.0:{appOptions.Port}");
 app.Logger.LogInformation("Listening on port {Port}, database {Db}", appOptions.Port, appOptions.GetDbPath());
+app.UseSerilogRequestLogging();
 app.MapWebhookEndpoints();
 app.Run();
