@@ -1,8 +1,7 @@
 # Build outputs
 bin/
 obj/
-publish/
-deploy/
+artifacts/
 # Local runtime data
 *.db
 *.db-wal

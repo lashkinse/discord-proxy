@@ -4,6 +4,14 @@ Self-hosted Discord webhook relay for .NET 8. Accepts the same
 `POST /api/webhooks/{id}/{token}` payloads as Discord, answers `202`
 immediately and delivers in the background with queueing and retries.
 
+## Layout
+
+```text
+DiscordProxy.sln
+src/DiscordProxy/      # the project (Program.cs, services, appsettings.json)
+artifacts/publish/     # single-file exe built by build.bat (git-ignored)
+```
+
 ## How it works
 
 - `POST` validates the payload, stores it in SQLite and returns
@@ -17,12 +25,12 @@ immediately and delivers in the background with queueing and retries.
 
 ## Run
 
-Settings live in `appsettings.json` (`Proxy` section). Override with
-`Proxy__Port`-style environment variables, legacy `PORT` / `DB_PATH`,
-or command-line args (`--Proxy:Port=7071`).
+Settings live in `src/DiscordProxy/appsettings.json` (`Proxy` section).
+Override with `Proxy__Port`-style environment variables, legacy `PORT` /
+`DB_PATH`, or command-line args (`--Proxy:Port=7071`).
 
 ```powershell
-dotnet discord-proxy-cs/bin/Release/net8.0/DiscordProxy.dll
+dotnet src/DiscordProxy/bin/Release/net8.0/DiscordProxy.dll
 ```
 
 Point plugins at it by swapping only the host:
@@ -35,5 +43,5 @@ Point plugins at it by swapping only the host:
 ## Build a single exe
 
 ```powershell
-.\discord-proxy-cs\build.bat   # -> discord-proxy-cs/publish/DiscordProxy.exe
+.\build.bat   # -> artifacts/publish/DiscordProxy.exe
 ```
