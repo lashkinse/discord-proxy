@@ -115,6 +115,7 @@ public sealed class WebhookWorker : BackgroundService
 
             case RateLimited limited:
                 var resumeAt = DateTime.UtcNow + TimeSpan.FromSeconds(limited.RetryAfterSeconds + 0.5);
+                // Set before the bury check: a dying job must still shield the rest.
                 if (limited.IsGlobal)
                     _globalPauseUntil = resumeAt;
                 if (job.Attempts + 1 > _options.MaxAttempts429)
