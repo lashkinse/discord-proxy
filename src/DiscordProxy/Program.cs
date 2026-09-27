@@ -23,12 +23,7 @@ builder.Host.UseSerilog((context, logger) =>
         .MinimumLevel.Warning()
         .Enrich.FromLogContext()
         .Enrich.WithMachineName()
-        .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-        .WriteTo.File(
-            "logs/proxy-.log",
-            rollingInterval: RollingInterval.Day,
-            retainedFileCountLimit: 14,
-            outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {SourceContext} :: {Message:lj}{NewLine}{Exception}");
+        .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
 });
 
 builder.Services.AddOptions<ProxyOptions>()
