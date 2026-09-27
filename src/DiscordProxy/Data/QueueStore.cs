@@ -155,7 +155,6 @@ public sealed class QueueStore
         return (long)(command.ExecuteScalar() ?? 0L);
     }
 
-    /// <summary>Delivered successfully — remove from the queue.</summary>
     public void Delete(long id) => ExecuteNonQuery("DELETE FROM queue WHERE id = $id;", id);
 
     /// <summary>Defer a retry: new due time, error text. Counts as an attempt unless told otherwise.</summary>

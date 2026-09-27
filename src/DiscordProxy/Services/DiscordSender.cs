@@ -7,7 +7,6 @@ namespace DiscordProxy.Services;
 /// <summary>Result of one send attempt. The caller decides what to do next.</summary>
 public abstract record SendOutcome;
 
-/// <summary>Discord accepted the message.</summary>
 public sealed record Delivered(int StatusCode) : SendOutcome;
 
 /// <summary>Discord returned 429: wait exactly retry_after.</summary>
@@ -24,7 +23,6 @@ public sealed record Permanent(string Error) : SendOutcome;
 /// </summary>
 public sealed class DiscordSender
 {
-    /// <summary>Named HttpClient used for all Discord calls.</summary>
     public const string HttpClientName = "discord";
 
     private readonly IHttpClientFactory _httpClientFactory;
