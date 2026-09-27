@@ -46,6 +46,26 @@ Point plugins at it by swapping only the host:
 .\build.bat   # -> artifacts/publish/DiscordProxy.exe
 ```
 
+## Run as a Windows service (NSSM)
+
+```powershell
+nssm install DiscordProxy "C:\proxy\DiscordProxy.exe"
+nssm set DiscordProxy AppDirectory "C:\proxy"
+nssm set DiscordProxy AppStdout "C:\proxy\logs\service-out.log"
+nssm set DiscordProxy AppStderr "C:\proxy\logs\service-err.log"
+nssm set DiscordProxy Start SERVICE_AUTO_START
+nssm start DiscordProxy
+```
+
+Keep `appsettings.json` next to the exe. Watch `GET /stats` (`dead`
+growing means Discord rejects something permanently).
+
+## Delivery semantics
+
+At-least-once: if the process dies between Discord accepting a message
+and the queue row being deleted, the message is delivered twice after
+restart. Discord has no deduplication, so plan for rare duplicates.
+
 ## Tests
 
 ```powershell

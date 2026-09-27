@@ -35,9 +35,9 @@ public sealed class ProxyOptions
     [Range(0.01, 3600)]
     public double PaceSeconds { get; set; } = 2.2;
 
-    /// <summary>Attempts on network errors and 5xx before a job goes dead.</summary>
-    [Range(1, 1000)]
-    public int MaxAttemptsNet { get; set; } = 12;
+    /// <summary>Attempts on network errors and 5xx before a job goes dead (~10h of outage).</summary>
+    [Range(1, 10000)]
+    public int MaxAttemptsNet { get; set; } = 48;
 
     /// <summary>Attempts on 429 before a job goes dead.</summary>
     [Range(1, 1000)]
