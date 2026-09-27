@@ -1,0 +1,16 @@
+# Build outputs
+bin/
+obj/
+publish/
+deploy/
+# Local runtime data
+*.db
+*.db-wal
+*.db-shm
+# IDE and OS
+.vs/
+*.user
+*.suo
+TestResults/
+.DS_Store
+Thumbs.db
