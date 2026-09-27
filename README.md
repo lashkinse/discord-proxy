@@ -9,6 +9,8 @@ immediately and delivers in the background with queueing and retries.
 ```text
 DiscordProxy.sln
 src/DiscordProxy/      # the project (Program.cs, services, appsettings.json)
+service/               # WinSW wrapper + install scripts
+tests/                 # xUnit tests
 artifacts/publish/     # single-file exe built by build.bat (git-ignored)
 ```
 
@@ -28,6 +30,7 @@ artifacts/publish/     # single-file exe built by build.bat (git-ignored)
 Settings live in `src/DiscordProxy/appsettings.json` (`Proxy` section).
 Override with `Proxy__Port`-style environment variables, legacy `PORT` /
 `DB_PATH`, or command-line args (`--Proxy:Port=7071`).
+Config changes need a restart.
 
 ```powershell
 dotnet src/DiscordProxy/bin/Release/net8.0/DiscordProxy.dll
@@ -66,5 +69,12 @@ restart. Discord has no deduplication, so plan for rare duplicates.
 ## Tests
 
 ```powershell
-dotnet test   # 50 unit + integration tests, offline except one 401 round-trip
+dotnet test   # 82 unit + integration tests, offline except one 401 round-trip
 ```
+
+## Logging
+
+Console and `logs/proxy-DATE.log` both start at `Info`. Per-message lines
+(requests, deliveries) sit at `Debug` so high volume stays quiet; warnings
+and errors always show. A `Serilog` section in `appsettings.json` takes over
+completely when present.

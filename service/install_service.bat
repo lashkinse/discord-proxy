@@ -1,7 +1,6 @@
 @echo off
 rem Installs and starts the DiscordProxy service (WinSW wrapper, no extra tools needed).
-rem Expects DiscordProxyService.exe + DiscordProxyService.xml next to the proxy exe:
-rem build.bat already copies everything into artifacts\publish.
+rem Run from any folder containing DiscordProxyService.exe/.xml.
 setlocal
 
 set WRAPPER=%~dp0DiscordProxyService.exe
