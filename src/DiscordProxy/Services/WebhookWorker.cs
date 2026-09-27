@@ -12,7 +12,7 @@ namespace DiscordProxy.Services;
 public sealed class WebhookWorker : BackgroundService
 {
     private readonly QueueStore _store;
-    private readonly DiscordSender _sender;
+    private readonly IDiscordSender _sender;
     private readonly DeliveryPacer _pacer;
     private readonly ProxyOptions _options;
     private readonly ILogger<WebhookWorker> _log;
@@ -27,7 +27,7 @@ public sealed class WebhookWorker : BackgroundService
 
     public WebhookWorker(
         QueueStore store,
-        DiscordSender sender,
+        IDiscordSender sender,
         ProxyOptions options,
         ILogger<WebhookWorker> log)
     {

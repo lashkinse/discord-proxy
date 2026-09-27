@@ -32,6 +32,7 @@ builder.Services.AddHttpClient(DiscordSender.HttpClientName, (sp, client) =>
     client.DefaultRequestHeaders.UserAgent.ParseAdd("DiscordProxy/1.0");
 });
 builder.Services.AddSingleton<DiscordSender>();
+builder.Services.AddSingleton<IDiscordSender>(sp => sp.GetRequiredService<DiscordSender>());
 builder.Services.AddHostedService<WebhookWorker>();
 
 var app = builder.Build();

@@ -21,7 +21,7 @@ public sealed record Permanent(string Error) : SendOutcome;
 /// <summary>
 /// Sends a single job to Discord. No queues, no sleeps — just HTTP and response parsing.
 /// </summary>
-public sealed class DiscordSender
+public sealed class DiscordSender : IDiscordSender
 {
     public const string HttpClientName = "discord";
 

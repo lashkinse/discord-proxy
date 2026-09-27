@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
+using DiscordProxy;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DiscordProxy.Tests;
 
@@ -118,5 +120,47 @@ public sealed class ApiTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("Captain Hook", body);
+    }
+
+    [Fact]
+    public async Task HealthAndStatsAnswer()
+    {
+        Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync("/health/live")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync("/health/ready")).StatusCode);
+
+        var stats = await _client.GetFromJsonAsync<Dictionary<string, long>>("/stats");
+        Assert.NotNull(stats);
+        Assert.True(stats.ContainsKey("pending"));
+        Assert.True(stats.ContainsKey("dead"));
+    }
+
+    [Fact]
+    public async Task ParallelPostsAreAllAccepted()
+    {
+        // 20 concurrent posts: SQLite + worker must not lose or corrupt anything.
+        var tasks = Enumerable.Range(0, 20).Select(_ =>
+            _client.PostAsJsonAsync($"/api/webhooks/{FakeId}/{FakeToken}", new { content = "x" }));
+        var responses = await Task.WhenAll(tasks);
+        Assert.All(responses, r => Assert.Equal(HttpStatusCode.Accepted, r.StatusCode));
+
+        // Fake token → Discord 401s everything; nothing may stay pending.
+        var deadline = DateTime.UtcNow.AddSeconds(60);
+        while (DateTime.UtcNow < deadline)
+        {
+            var stats = await _client.GetFromJsonAsync<Dictionary<string, long>>("/stats");
+            if (stats!["pending"] == 0 && stats["dead"] == 20)
+                return;
+            await Task.Delay(500);
+        }
+        Assert.Fail("Parallel jobs were not buried in time.");
+    }
+
+    [Fact]
+    public void InvalidConfigFailsFast()
+    {
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.UseSetting("Proxy:Port", "99999"));
+        var ex = Assert.ThrowsAny<Exception>(() => factory.Services.GetRequiredService<ProxyOptions>());
+        Assert.Contains("Port", ex.Message);
     }
 }
