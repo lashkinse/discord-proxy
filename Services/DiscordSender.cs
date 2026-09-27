@@ -41,9 +41,18 @@ public sealed class DiscordSender
         using var content = new StringContent(job.Payload, Encoding.UTF8, "application/json");
 
         HttpResponseMessage response;
+        string body;
         try
         {
             response = await client.PostAsync(url, content, cancellationToken);
+            try
+            {
+                body = await response.Content.ReadAsStringAsync(cancellationToken);
+            }
+            catch
+            {
+                body = string.Empty;
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -54,27 +63,20 @@ public sealed class DiscordSender
             return new Retryable(ex.Message);
         }
 
-        string body;
-        try
+        using (response)
         {
-            body = await response.Content.ReadAsStringAsync(cancellationToken);
+            var status = (int)response.StatusCode;
+            if (status is >= 200 and < 300)
+                return new Delivered(status);
+
+            if (status == 429)
+                return new RateLimited(ParseRetryAfter(body), IsGlobal(body));
+
+            if (status >= 500)
+                return new Retryable($"HTTP {status}: {Truncate(body)}");
+
+            return new Permanent($"HTTP {status}: {Truncate(body)}");
         }
-        catch
-        {
-            body = string.Empty;
-        }
-
-        var status = (int)response.StatusCode;
-        if (status is >= 200 and < 300)
-            return new Delivered(status);
-
-        if (status == 429)
-            return new RateLimited(ParseRetryAfter(body), IsGlobal(body));
-
-        if (status >= 500)
-            return new Retryable($"HTTP {status}: {Truncate(body)}");
-
-        return new Permanent($"HTTP {status}: {Truncate(body)}");
     }
 
     /// <summary>

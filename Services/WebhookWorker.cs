@@ -6,6 +6,8 @@ namespace DiscordProxy.Services;
 /// <summary>
 /// Background worker: takes due jobs and sends them via <see cref="DiscordSender"/>.
 /// Outcome decisions live here, HTTP details in the sender, SQL in the store.
+/// Pacing memory is volatile: after a restart the first batch goes out at once,
+/// and the 429 path absorbs the burst.
 /// </summary>
 public sealed class WebhookWorker : BackgroundService
 {

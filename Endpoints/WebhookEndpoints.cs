@@ -34,18 +34,16 @@ public static class WebhookEndpoints
 
             var client = http.CreateClient(DiscordSender.HttpClientName);
             var url = $"https://discord.com/api/webhooks/{id}/{token}{context.Request.QueryString}";
-            HttpResponseMessage response;
             try
             {
-                response = await client.GetAsync(url, context.RequestAborted);
+                using var response = await client.GetAsync(url, context.RequestAborted);
+                var body = await response.Content.ReadAsStringAsync(context.RequestAborted);
+                return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
             }
             catch (Exception ex)
             {
-                return Results.Problem("Upstream error: " + ex.Message, statusCode: 502);
+                return Results.Problem($"Upstream error: {ex.Message}", statusCode: 502);
             }
-
-            var body = await response.Content.ReadAsStringAsync(context.RequestAborted);
-            return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
         });
 
         // Message intake: validate, store in SQLite, answer 202.

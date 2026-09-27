@@ -3,8 +3,8 @@ namespace DiscordProxy;
 /// <summary>
 /// Proxy settings. Sources, weakest to strongest:
 /// appsettings.json ("Proxy" section), Proxy__* environment variables,
-/// legacy PORT / DB_PATH variables (kept for backward compatibility),
-/// command-line arguments (--Proxy:Port=7071).
+/// command-line arguments (--Proxy:Port=7071),
+/// legacy PORT / DB_PATH variables (applied last, kept for backward compatibility).
 /// </summary>
 public sealed class ProxyOptions
 {

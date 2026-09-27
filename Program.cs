@@ -32,5 +32,6 @@ var app = builder.Build();
 var appOptions = app.Services.GetRequiredService<ProxyOptions>();
 app.Urls.Clear();
 app.Urls.Add($"http://0.0.0.0:{appOptions.Port}");
+app.Logger.LogInformation("Listening on port {Port}, database {Db}", appOptions.Port, appOptions.GetDbPath());
 app.MapWebhookEndpoints();
 app.Run();
