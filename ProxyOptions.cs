@@ -1,47 +1,46 @@
 namespace DiscordProxy;
 
 /// <summary>
-/// Proxy settings. Read from environment variables once at startup.
+/// Proxy settings. Sources, weakest to strongest:
+/// appsettings.json ("Proxy" section), Proxy__* environment variables,
+/// legacy PORT / DB_PATH variables (kept for backward compatibility),
+/// command-line arguments (--Proxy:Port=7071).
 /// </summary>
 public sealed class ProxyOptions
 {
-    private const int DefaultPort = 7070;
+    public const string SectionName = "Proxy";
 
     /// <summary>HTTP server port.</summary>
-    public int Port { get; init; } = DefaultPort;
+    public int Port { get; set; } = 7070;
 
-    /// <summary>Path to the SQLite queue file.</summary>
-    public string DbPath { get; init; } = Path.Combine(AppContext.BaseDirectory, "queue.db");
+    /// <summary>
+    /// Path to the SQLite queue file. Relative paths resolve
+    /// against the application directory.
+    /// </summary>
+    public string DbPath { get; set; } = "queue.db";
 
     /// <summary>Maximum request body size in bytes.</summary>
-    public int MaxPayloadBytes { get; init; } = 64 * 1024;
+    public int MaxPayloadBytes { get; set; } = 64 * 1024;
 
     /// <summary>Maximum pending jobs; beyond this we answer 503.</summary>
-    public int MaxPending { get; init; } = 10_000;
+    public int MaxPending { get; set; } = 10_000;
 
-    /// <summary>Minimum interval between sends to one webhook (Discord limit is ~30/min).</summary>
-    public TimeSpan PacePerWebhook { get; init; } = TimeSpan.FromSeconds(2.2);
+    /// <summary>Minimum gap between sends to one webhook, in seconds (Discord limit is ~30/min).</summary>
+    public double PaceSeconds { get; set; } = 2.2;
 
     /// <summary>Attempts on network errors and 5xx before a job goes dead.</summary>
-    public int MaxAttemptsNet { get; init; } = 12;
+    public int MaxAttemptsNet { get; set; } = 12;
 
     /// <summary>Attempts on 429 before a job goes dead.</summary>
-    public int MaxAttempts429 { get; init; } = 25;
+    public int MaxAttempts429 { get; set; } = 25;
 
-    /// <summary>Timeout of a single request to Discord.</summary>
-    public TimeSpan DiscordTimeout { get; init; } = TimeSpan.FromSeconds(15);
+    /// <summary>Timeout of a single request to Discord, in seconds.</summary>
+    public double DiscordTimeoutSeconds { get; set; } = 15;
 
-    /// <summary>Builds settings from the environment: PORT, DB_PATH.</summary>
-    public static ProxyOptions FromEnvironment()
-    {
-        var port = DefaultPort;
-        if (int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var p) && p is > 0 and <= 65535)
-            port = p;
+    public TimeSpan PacePerWebhook => TimeSpan.FromSeconds(PaceSeconds);
+    public TimeSpan DiscordTimeout => TimeSpan.FromSeconds(DiscordTimeoutSeconds);
 
-        var dbPath = Environment.GetEnvironmentVariable("DB_PATH");
-        if (string.IsNullOrWhiteSpace(dbPath))
-            dbPath = Path.Combine(AppContext.BaseDirectory, "queue.db");
-
-        return new ProxyOptions { Port = port, DbPath = dbPath };
-    }
+    /// <summary>Absolute database path, resolving relatives against the app directory.</summary>
+    public string GetDbPath() =>
+        Path.IsPathRooted(DbPath) ? DbPath : Path.Combine(AppContext.BaseDirectory, DbPath);
 }

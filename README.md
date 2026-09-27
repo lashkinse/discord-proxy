@@ -17,9 +17,11 @@ immediately and delivers in the background with queueing and retries.
 
 ## Run
 
+Settings live in `appsettings.json` (`Proxy` section). Override with
+`Proxy__Port`-style environment variables, legacy `PORT` / `DB_PATH`,
+or command-line args (`--Proxy:Port=7071`).
+
 ```powershell
-$env:PORT = "7070"        # default 7070
-$env:DB_PATH = "queue.db" # default queue.db next to the binary
 dotnet discord-proxy-cs/bin/Release/net8.0/DiscordProxy.dll
 ```
 

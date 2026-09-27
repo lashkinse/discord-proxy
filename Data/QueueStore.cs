@@ -22,7 +22,7 @@ public sealed class QueueStore
         Initialize();
     }
 
-    public QueueStore(ProxyOptions options) : this(options.DbPath) { }
+    public QueueStore(ProxyOptions options) : this(options.GetDbPath()) { }
 
     private SqliteConnection Open()
     {
