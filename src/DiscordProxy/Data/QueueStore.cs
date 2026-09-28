@@ -155,23 +155,26 @@ public sealed class QueueStore
         return (long)(command.ExecuteScalar() ?? 0L);
     }
 
-    public void Delete(long id) => ExecuteNonQuery("DELETE FROM queue WHERE id = $id;", id);
+    public void Delete(long id)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM queue WHERE id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
 
     /// <summary>Defer a retry: new due time, error text. Counts as an attempt unless told otherwise.</summary>
     public void Postpone(long id, DateTime nextAttemptAt, string? error, bool countAttempt = true)
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
-        command.CommandText = countAttempt
-            ? """
-              UPDATE queue SET next_attempt_at = $next, attempts = attempts + 1, last_error = $error
-              WHERE id = $id;
-              """
-            : """
-              UPDATE queue SET next_attempt_at = $next, last_error = $error
-              WHERE id = $id;
-              """;
+        command.CommandText = """
+            UPDATE queue SET next_attempt_at = $next, attempts = attempts + $inc, last_error = $error
+            WHERE id = $id;
+            """;
         command.Parameters.AddWithValue("$next", ToTimestamp(nextAttemptAt));
+        command.Parameters.AddWithValue("$inc", countAttempt ? 1 : 0);
         command.Parameters.AddWithValue("$error", (object?)error ?? DBNull.Value);
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
@@ -194,12 +197,6 @@ public sealed class QueueStore
         insert.ExecuteNonQuery();
         ExecuteIn(connection, "DELETE FROM queue WHERE id = $id;", id);
         transaction.Commit();
-    }
-
-    private void ExecuteNonQuery(string sql, long id)
-    {
-        using var connection = Open();
-        ExecuteIn(connection, sql, id);
     }
 
     private void ExecuteIn(SqliteConnection connection, string sql, long id)

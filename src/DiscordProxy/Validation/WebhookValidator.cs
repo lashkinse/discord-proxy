@@ -44,11 +44,12 @@ public static class WebhookValidator
 
         if (root.TryGetProperty("poll", out var poll) && poll.ValueKind != JsonValueKind.Object)
             return "Poll must be an object";
+        var hasPoll = root.TryGetProperty("poll", out var pollObject) && pollObject.ValueKind == JsonValueKind.Object;
 
         if (HasNonEmptyString(root, "content")
             || HasNonEmptyArray(root, "embeds")
             || HasNonEmptyArray(root, "components")
-            || (root.TryGetProperty("poll", out var pollObject) && pollObject.ValueKind == JsonValueKind.Object))
+            || hasPoll)
             return null;
 
         return "Cannot send an empty message";
