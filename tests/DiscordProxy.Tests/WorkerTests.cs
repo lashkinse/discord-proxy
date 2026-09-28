@@ -16,7 +16,6 @@ public sealed class WorkerTests : IDisposable
     private readonly QueueStore _store;
     private readonly StubSender _sender = new();
     private readonly ProxyOptions _options = new();
-    private readonly List<WebhookWorker> _workers = new();
 
     public WorkerTests()
     {
@@ -46,7 +45,6 @@ public sealed class WorkerTests : IDisposable
     private async Task RunWorkerUntilAsync(Func<bool> done, int timeoutMs = 10000)
     {
         var worker = new WebhookWorker(_store, _sender, _options, NullLogger<WebhookWorker>.Instance);
-        _workers.Add(worker);
         var cts = new CancellationTokenSource();
         await worker.StartAsync(cts.Token);
         try
