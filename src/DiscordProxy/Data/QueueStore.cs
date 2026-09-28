@@ -6,7 +6,8 @@ namespace DiscordProxy.Data;
 /// <summary>
 /// SQLite-backed queue. Each method opens one connection per operation,
 /// which keeps concurrent access from the API and the worker simple.
-/// WAL mode plus busy_timeout protect against SQLITE_BUSY.
+/// WAL mode plus busy_timeout protect against SQLITE_BUSY;
+/// synchronous FULL keeps committed jobs safe across power loss.
 /// </summary>
 public sealed class QueueStore
 {
@@ -29,7 +30,7 @@ public sealed class QueueStore
         var connection = new SqliteConnection(_connectionString);
         connection.Open();
         using var pragma = connection.CreateCommand();
-        pragma.CommandText = "PRAGMA busy_timeout=5000;";
+        pragma.CommandText = "PRAGMA busy_timeout=5000; PRAGMA synchronous=FULL;";
         pragma.ExecuteNonQuery();
         return connection;
     }

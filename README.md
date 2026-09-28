@@ -58,6 +58,8 @@ WinSW wrapper — no extra tools needed, just an administrator console.
 both scripts) into `artifacts/publish`; on the server you run the scripts
 from there. Service id is `DiscordProxySvc`.
 
+Low-memory hosts: set `DOTNET_gcServer=0` to trade throughput for footprint.
+
 Keep `appsettings.json` next to the exe. Watch `GET /stats` (`dead`
 growing means Discord rejects something permanently).
 
