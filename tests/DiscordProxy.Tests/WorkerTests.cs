@@ -137,6 +137,17 @@ public sealed class WorkerTests : IDisposable
     }
 
     [Fact]
+    public async Task GlobalRateLimitDoesNotCorruptFlow()
+    {
+        _sender.Outcomes.Enqueue(new RateLimited(0.5, IsGlobal: true));
+        _store.Enqueue("111111111111111111", "token", "", @"{""content"":""a""}");
+        _store.Enqueue("222222222222222222", "token", "", @"{""content"":""b""}");
+        await RunWorkerUntilAsync(() => _store.PendingCount() == 0, timeoutMs: 15000);
+        Assert.Equal(0, _store.DeadCount());
+        Assert.True(_sender.Calls >= 2);
+    }
+
+    [Fact]
     public async Task HangingLaneDoesNotBlockOtherWebhooks()
     {
         var completions = new ConcurrentQueue<(string Payload, DateTime At)>();

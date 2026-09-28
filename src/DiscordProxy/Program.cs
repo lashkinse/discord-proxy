@@ -56,6 +56,10 @@ builder.Services.AddHttpClient(DiscordSender.HttpClientName, (sp, client) =>
     var options = sp.GetRequiredService<ProxyOptions>();
     client.Timeout = options.DiscordTimeout;
     client.DefaultRequestHeaders.UserAgent.ParseAdd("DiscordProxy/1.0");
+}).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+{
+    ConnectCallback = static (context, cancellationToken) =>
+        DiscordConnect.ConnectAsync(context, cancellationToken),
 });
 builder.Services.AddSingleton<DiscordSender>();
 builder.Services.AddSingleton<IDiscordSender>(sp => sp.GetRequiredService<DiscordSender>());

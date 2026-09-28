@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using DiscordProxy;
+using DiscordProxy.Services;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DiscordProxy.Tests;
@@ -89,6 +91,39 @@ public sealed class ApiTests : IAsyncLifetime
         var response = await _client.PostAsJsonAsync(
             $"/api/webhooks/abc/{FakeToken}", new { content = "hello" });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task OverloadedQueueReturns503()
+    {
+        // No worker here: jobs pile up deterministically.
+        var dbPath = Path.Combine(Path.GetTempPath(), $"proxy-503-{Guid.NewGuid():N}.db");
+        try
+        {
+            using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => builder
+                .UseSetting("Proxy:DbPath", dbPath)
+                .UseSetting("Proxy:MaxPending", "1")
+                .ConfigureTestServices(services =>
+                {
+                    var descriptor = services.Single(s => s.ImplementationType == typeof(WebhookWorker));
+                    services.Remove(descriptor);
+                }));
+            var client = factory.CreateClient();
+            var url = $"/api/webhooks/{FakeId}/{FakeToken}";
+
+            Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync(url, new { content = "1" })).StatusCode);
+            Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync(url, new { content = "2" })).StatusCode);
+            // Pending is now 2 > MaxPending 1.
+            var response = await client.PostAsJsonAsync(url, new { content = "3" });
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        }
+        finally
+        {
+            foreach (var suffix in new[] { "", "-wal", "-shm", "-journal" })
+            {
+                try { File.Delete(dbPath + suffix); } catch { }
+            }
+        }
     }
 
     [Fact]
