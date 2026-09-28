@@ -110,7 +110,7 @@ public sealed class WebhookWorker : BackgroundService
             case Delivered delivered:
                 _pacer.MarkSent(job.WebhookId, DateTime.UtcNow);
                 _store.Delete(job.Id);
-                _log.LogDebug("Delivered job {JobId} -> {Status}", job.Id, delivered.StatusCode);
+                _log.LogDebug("Delivered job {JobId} ({WebhookId}) -> {Status}", job.Id, job.WebhookId, delivered.StatusCode);
                 break;
 
             case RateLimited limited:
@@ -123,7 +123,7 @@ public sealed class WebhookWorker : BackgroundService
                 else
                 {
                     _store.Postpone(job.Id, resumeAt, $"429 retry_after={limited.RetryAfterSeconds}");
-                    _log.LogWarning("429 for job {JobId}, waiting {Wait}s", job.Id, limited.RetryAfterSeconds);
+                    _log.LogWarning("429 for job {JobId} ({WebhookId}), waiting {Wait}s", job.Id, job.WebhookId, limited.RetryAfterSeconds);
                 }
                 break;
 
@@ -138,7 +138,7 @@ public sealed class WebhookWorker : BackgroundService
                     var waitSeconds = Math.Min(5 * Math.Pow(2, job.Attempts), 900);
                     var retryAt = DateTime.UtcNow + TimeSpan.FromSeconds(waitSeconds);
                     _store.Postpone(job.Id, retryAt, retryable.Error);
-                    _log.LogWarning("Retry job {JobId} in {Wait}s: {Error}", job.Id, waitSeconds, retryable.Error);
+                    _log.LogWarning("Retry job {JobId} ({WebhookId}) in {Wait}s: {Error}", job.Id, job.WebhookId, waitSeconds, retryable.Error);
                 }
                 break;
 
