@@ -28,8 +28,13 @@ public static class WebhookValidator
         if (root.ValueKind != JsonValueKind.Object)
             return "Body must be a JSON object";
 
-        if (root.TryGetProperty("content", out var content) && content.ValueKind != JsonValueKind.String)
-            return "Content must be a string";
+        if (root.TryGetProperty("content", out var content))
+        {
+            if (content.ValueKind != JsonValueKind.String)
+                return "Content must be a string";
+            if (content.GetString()!.Length > 2000)
+                return "Content must be 2000 or fewer in length";
+        }
 
         if (root.TryGetProperty("embeds", out var embeds))
         {

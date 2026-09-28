@@ -70,4 +70,17 @@ public sealed class WebhookValidatorTests
         using var document = JsonDocument.Parse(@"[1,2]");
         Assert.NotNull(WebhookValidator.ValidatePayload(document.RootElement));
     }
+
+    [Fact]
+    public void ContentBoundaryLengths()
+    {
+        Assert.Null(Validate(@"{""content"":""" + new string('x', 2000) + @"""}"));
+        Assert.NotNull(Validate(@"{""content"":""" + new string('x', 2001) + @"""}"));
+    }
+
+    private static string? Validate(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return WebhookValidator.ValidatePayload(document.RootElement);
+    }
 }
