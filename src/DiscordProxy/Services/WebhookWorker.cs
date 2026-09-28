@@ -174,7 +174,7 @@ public sealed class WebhookWorker : BackgroundService
                     _pacer.MarkSent(job.WebhookId, DateTime.UtcNow);
                 }
                 _store.Delete(job.Id);
-                _log.LogInformation("Delivered job {JobId} ({WebhookId}) -> {Status}", job.Id, job.WebhookId, delivered.StatusCode);
+                _log.LogDebug("Delivered job {JobId} ({WebhookId}) -> {Status}", job.Id, job.WebhookId, delivered.StatusCode);
                 break;
 
             case RateLimited limited:

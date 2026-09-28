@@ -77,7 +77,7 @@ app.UseSerilogRequestLogging(options =>
     options.GetLevel = (context, _, ex) =>
         ex is not null || context.Response.StatusCode >= 500
             ? LogEventLevel.Error
-            : LogEventLevel.Information;
+            : LogEventLevel.Debug;
 });
 app.MapWebhookEndpoints();
 app.Run();
