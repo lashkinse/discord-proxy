@@ -34,11 +34,14 @@ public sealed class WorkerTests : IDisposable
     private sealed class StubSender : IDiscordSender
     {
         public readonly ConcurrentQueue<SendOutcome> Outcomes = new();
+        public Func<QueuedJob, CancellationToken, Task<SendOutcome>>? Handler;
         public int Calls;
-        public Task<SendOutcome> SendAsync(QueuedJob job, CancellationToken cancellationToken)
+        public async Task<SendOutcome> SendAsync(QueuedJob job, CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref Calls);
-            return Task.FromResult(Outcomes.TryDequeue(out var outcome) ? outcome : new Delivered(204));
+            if (Handler is not null)
+                return await Handler(job, cancellationToken);
+            return Outcomes.TryDequeue(out var outcome) ? outcome : new Delivered(204);
         }
     }
 
@@ -131,5 +134,26 @@ public sealed class WorkerTests : IDisposable
         // Only the head was attempted; the second job is still queued behind it.
         Assert.Equal(1, _sender.Calls);
         Assert.Equal(2, _store.PendingCount());
+    }
+
+    [Fact]
+    public async Task HangingLaneDoesNotBlockOtherWebhooks()
+    {
+        var completions = new ConcurrentQueue<(string Payload, DateTime At)>();
+        _sender.Handler = async (job, ct) =>
+        {
+            if (job.WebhookId == "111111111111111111")
+                await Task.Delay(TimeSpan.FromSeconds(3), ct); // hanging lane
+            completions.Enqueue((job.Payload, DateTime.UtcNow));
+            return new Delivered(204);
+        };
+
+        _store.Enqueue("111111111111111111", "token", "", @"{""content"":""slow""}");
+        _store.Enqueue("222222222222222222", "token", "", @"{""content"":""fast""}");
+
+        await RunWorkerUntilAsync(() => _store.PendingCount() == 0, timeoutMs: 15000);
+
+        var ordered = completions.OrderBy(x => x.At).Select(x => x.Payload).ToList();
+        Assert.Equal(new[] { @"{""content"":""fast""}", @"{""content"":""slow""}" }, ordered);
     }
 }

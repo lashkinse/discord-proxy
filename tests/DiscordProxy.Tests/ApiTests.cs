@@ -119,7 +119,7 @@ public sealed class ApiTests : IAsyncLifetime
         var response = await _client.GetAsync($"/api/webhooks/{realId}/{realToken}");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Captain Hook", body);
+        Assert.Contains($"\"id\":\"{realId}\"", body);
     }
 
     [Fact]

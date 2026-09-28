@@ -18,7 +18,8 @@ artifacts/publish/     # single-file exe built by build.bat (git-ignored)
 
 - `POST` validates the payload, stores it in SQLite and returns
   `202 { jobId, status: "queued" }`.
-- A background worker sends jobs to Discord: pacing 2.2s per webhook,
+- A background worker sends jobs to Discord over concurrent lanes (one per
+  webhook, strict order within a lane): pacing 2.2s per webhook,
   `429` waits exactly `retry_after` (plus a global pause on `global: true`),
   network errors and `5xx` retry with exponential backoff, other `4xx`
   go to the `dead` table. No message is lost on restart.

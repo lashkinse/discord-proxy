@@ -4,7 +4,9 @@ using DiscordProxy.Models;
 namespace DiscordProxy.Services;
 
 /// <summary>
-/// Background worker: takes due jobs and sends them via <see cref="DiscordSender"/>.
+/// Background worker: takes due jobs and sends them via <see cref="IDiscordSender"/>.
+/// Each webhook gets its own lane: different webhooks send concurrently,
+/// but a webhook never has two sends in flight, so per-webhook order holds.
 /// Outcome decisions live here, HTTP details in the sender, SQL in the store.
 /// Pacing memory is volatile: after a restart the first batch goes out at once,
 /// and the 429 path absorbs the burst.
@@ -16,6 +18,10 @@ public sealed class WebhookWorker : BackgroundService
     private readonly DeliveryPacer _pacer;
     private readonly ProxyOptions _options;
     private readonly ILogger<WebhookWorker> _log;
+
+    // Guards _inFlight, _pacer and _globalPauseUntil across concurrent send tasks.
+    private readonly object _sync = new();
+    private readonly HashSet<string> _inFlight = new();
 
     private const int BatchSize = 20;
     private static readonly TimeSpan IdleDelay = TimeSpan.FromMilliseconds(500);
@@ -42,9 +48,10 @@ public sealed class WebhookWorker : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
+            var running = new List<Task>();
             try
             {
-                if (DateTime.UtcNow < _globalPauseUntil)
+                if (IsPaused())
                 {
                     await Task.Delay(PausePollDelay, stoppingToken);
                     continue;
@@ -59,19 +66,46 @@ public sealed class WebhookWorker : BackgroundService
 
                 foreach (var job in dueJobs)
                 {
-                    if (stoppingToken.IsCancellationRequested)
-                        break;
-                    if (DateTime.UtcNow < _globalPauseUntil)
+                    if (stoppingToken.IsCancellationRequested || IsPaused())
                         break;
 
-                    if (_pacer.ShouldWait(job.WebhookId, DateTime.UtcNow, out var notBefore))
+                    var launch = false;
+                    DateTime waitUntil = default;
+                    var waiting = false;
+                    lock (_sync)
                     {
-                        // Pacing is not a send attempt: it must not burn retries.
-                        _store.Postpone(job.Id, notBefore, error: null, countAttempt: false);
-                        continue;
+                        // The head may still be in flight from an earlier batch:
+                        // SQL only knows due times, the lane set knows the truth.
+                        if (_inFlight.Contains(job.WebhookId))
+                            continue;
+                        if (_pacer.ShouldWait(job.WebhookId, DateTime.UtcNow, out var notBefore))
+                        {
+                            waiting = true;
+                            waitUntil = notBefore;
+                        }
+                        else
+                        {
+                            _inFlight.Add(job.WebhookId);
+                            launch = true;
+                        }
                     }
 
-                    await ProcessAsync(job, stoppingToken);
+                    if (waiting)
+                    {
+                        // Pacing is not a send attempt: it must not burn retries.
+                        _store.Postpone(job.Id, waitUntil, error: null, countAttempt: false);
+                        continue;
+                    }
+                    if (launch)
+                        running.Add(RunOneAsync(job, stoppingToken));
+                }
+
+                // Apply outcomes as they arrive: a hanging webhook holds only its lane.
+                while (running.Count > 0)
+                {
+                    var done = await Task.WhenAny(running);
+                    running.Remove(done);
+                    await done; // RunOneAsync never throws (see below).
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -93,31 +127,64 @@ public sealed class WebhookWorker : BackgroundService
         }
     }
 
-    private async Task ProcessAsync(QueuedJob job, CancellationToken stoppingToken)
+    private bool IsPaused()
     {
-        SendOutcome outcome;
+        lock (_sync)
+        {
+            return DateTime.UtcNow < _globalPauseUntil;
+        }
+    }
+
+    private async Task RunOneAsync(QueuedJob job, CancellationToken stoppingToken)
+    {
         try
         {
-            outcome = await _sender.SendAsync(job, stoppingToken);
+            SendOutcome outcome;
+            try
+            {
+                outcome = await _sender.SendAsync(job, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                return; // Shutting down — the job stays queued.
+            }
+            ApplyOutcome(job, outcome);
         }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        catch (Exception ex)
         {
-            return; // Shutting down — the job stays queued.
+            // Store failures and the like: logged, the job stays queued for the next pass.
+            _log.LogError(ex, "Send task error for job {JobId}", job.Id);
         }
+        finally
+        {
+            lock (_sync)
+            {
+                _inFlight.Remove(job.WebhookId);
+            }
+        }
+    }
 
+    private void ApplyOutcome(QueuedJob job, SendOutcome outcome)
+    {
         switch (outcome)
         {
             case Delivered delivered:
-                _pacer.MarkSent(job.WebhookId, DateTime.UtcNow);
+                lock (_sync)
+                {
+                    _pacer.MarkSent(job.WebhookId, DateTime.UtcNow);
+                }
                 _store.Delete(job.Id);
-                _log.LogDebug("Delivered job {JobId} ({WebhookId}) -> {Status}", job.Id, job.WebhookId, delivered.StatusCode);
+                _log.LogInformation("Delivered job {JobId} ({WebhookId}) -> {Status}", job.Id, job.WebhookId, delivered.StatusCode);
                 break;
 
             case RateLimited limited:
                 var resumeAt = DateTime.UtcNow + TimeSpan.FromSeconds(limited.RetryAfterSeconds + 0.5);
-                // Set before the dead check: a dying job must still shield the rest.
-                if (limited.IsGlobal)
-                    _globalPauseUntil = resumeAt;
+                lock (_sync)
+                {
+                    // Set before the dead check: a dying job must still shield the rest.
+                    if (limited.IsGlobal)
+                        _globalPauseUntil = resumeAt;
+                }
                 if (job.Attempts + 1 > _options.MaxAttempts429)
                     MoveToDead(job, $"429 attempts exceeded (last retry_after={limited.RetryAfterSeconds})");
                 else
