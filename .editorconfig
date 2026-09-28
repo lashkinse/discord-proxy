@@ -1,0 +1,9 @@
+root = true
+
+[*.cs]
+indent_style = space
+indent_size = 4
+
+# Explicit constructors over primary ones: field assignments stay visible,
+# which is clearer for beginners than captured parameters.
+dotnet_diagnostic.IDE0290.severity = none
