@@ -115,11 +115,11 @@ public sealed class WebhookWorker : BackgroundService
 
             case RateLimited limited:
                 var resumeAt = DateTime.UtcNow + TimeSpan.FromSeconds(limited.RetryAfterSeconds + 0.5);
-                // Set before the bury check: a dying job must still shield the rest.
+                // Set before the dead check: a dying job must still shield the rest.
                 if (limited.IsGlobal)
                     _globalPauseUntil = resumeAt;
                 if (job.Attempts + 1 > _options.MaxAttempts429)
-                    Bury(job, $"429 attempts exceeded (last retry_after={limited.RetryAfterSeconds})");
+                    MoveToDead(job, $"429 attempts exceeded (last retry_after={limited.RetryAfterSeconds})");
                 else
                 {
                     _store.Postpone(job.Id, resumeAt, $"429 retry_after={limited.RetryAfterSeconds}");
@@ -130,7 +130,7 @@ public sealed class WebhookWorker : BackgroundService
             case Retryable retryable:
                 if (job.Attempts + 1 > _options.MaxAttemptsNet)
                 {
-                    Bury(job, retryable.Error);
+                    MoveToDead(job, retryable.Error);
                 }
                 else
                 {
@@ -143,12 +143,12 @@ public sealed class WebhookWorker : BackgroundService
                 break;
 
             case Permanent permanent:
-                Bury(job, permanent.Error);
+                MoveToDead(job, permanent.Error);
                 break;
         }
     }
 
-    private void Bury(QueuedJob job, string error)
+    private void MoveToDead(QueuedJob job, string error)
     {
         _store.MarkDead(job.Id, error);
         _log.LogWarning("Dead job {JobId} (webhook {WebhookId}): {Error}", job.Id, job.WebhookId, error);

@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 using DiscordProxy.Models;
@@ -36,7 +37,7 @@ public sealed class DiscordSender : IDiscordSender
     {
         var client = _httpClientFactory.CreateClient(HttpClientName);
         var url = $"https://discord.com/api/webhooks/{job.WebhookId}/{job.Token}{job.Query}";
-        using var content = new StringContent(job.Payload, Encoding.UTF8, "application/json");
+        using var content = new StringContent(job.Payload, Encoding.UTF8, MediaTypeNames.Application.Json);
 
         HttpResponseMessage response;
         string body;

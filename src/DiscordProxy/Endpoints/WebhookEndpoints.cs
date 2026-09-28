@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using System.Text.Json;
 using DiscordProxy.Data;
 using DiscordProxy.Services;
@@ -58,47 +59,58 @@ public static class WebhookEndpoints
             if (!WebhookValidator.IsValidId(id) || !WebhookValidator.IsValidToken(token))
                 return Results.BadRequest(new { message = "Invalid webhook id/token" });
 
-            if (context.Request.ContentType is null ||
-                !context.Request.ContentType.StartsWith("application/json", StringComparison.OrdinalIgnoreCase))
-                return Results.BadRequest(new { message = "Content-Type must be application/json" });
+            var (failure, payload) = await ValidateIntakeAsync(context, store, options);
+            if (failure is not null)
+                return failure;
 
-            // Reject oversized bodies before reading them into memory.
-            if (context.Request.ContentLength > options.MaxPayloadBytes)
-                return Results.StatusCode(413);
-
-            string rawBody;
-            try
-            {
-                // Read as text (not ReadFromJsonAsync): the exact bytes go to the queue and to Discord.
-                using var reader = new StreamReader(context.Request.Body);
-                rawBody = await reader.ReadToEndAsync();
-            }
-            catch
-            {
-                return Results.BadRequest(new { message = "Cannot read body" });
-            }
-
-            if (rawBody.Length > options.MaxPayloadBytes)
-                return Results.StatusCode(413);
-
-            string? payloadError;
-            try
-            {
-                using var document = JsonDocument.Parse(rawBody);
-                payloadError = WebhookValidator.ValidatePayload(document.RootElement);
-            }
-            catch (JsonException)
-            {
-                return Results.BadRequest(new { message = "Invalid JSON" });
-            }
-            if (payloadError is not null)
-                return Results.BadRequest(new { message = payloadError });
-
-            if (store.PendingCount() > options.MaxPending)
-                return Results.Json(new { message = "Queue overloaded" }, statusCode: 503);
-
-            var jobId = store.Enqueue(id, token, context.Request.QueryString.Value ?? string.Empty, rawBody);
+            var jobId = store.Enqueue(id, token, context.Request.QueryString.Value ?? string.Empty, payload);
             return Results.Accepted(value: new { jobId, status = "queued" });
         });
+    }
+
+    // All intake checks in one flat sequence. A null failure means the payload may be enqueued.
+    private static async Task<(IResult? Failure, string Payload)> ValidateIntakeAsync(
+        HttpContext context, QueueStore store, ProxyOptions options)
+    {
+        if (context.Request.ContentType is null ||
+            !context.Request.ContentType.StartsWith(MediaTypeNames.Application.Json, StringComparison.OrdinalIgnoreCase))
+            return (Results.BadRequest(new { message = "Content-Type must be application/json" }), string.Empty);
+
+        // Reject oversized bodies before reading them into memory.
+        if (context.Request.ContentLength > options.MaxPayloadBytes)
+            return (Results.StatusCode(413), string.Empty);
+
+        string rawBody;
+        try
+        {
+            // Read as text (not ReadFromJsonAsync): the exact bytes go to the queue and to Discord.
+            using var reader = new StreamReader(context.Request.Body);
+            rawBody = await reader.ReadToEndAsync();
+        }
+        catch
+        {
+            return (Results.BadRequest(new { message = "Cannot read body" }), string.Empty);
+        }
+
+        if (rawBody.Length > options.MaxPayloadBytes)
+            return (Results.StatusCode(413), string.Empty);
+
+        string? payloadError;
+        try
+        {
+            using var document = JsonDocument.Parse(rawBody);
+            payloadError = WebhookValidator.ValidatePayload(document.RootElement);
+        }
+        catch (JsonException)
+        {
+            return (Results.BadRequest(new { message = "Invalid JSON" }), string.Empty);
+        }
+        if (payloadError is not null)
+            return (Results.BadRequest(new { message = payloadError }), string.Empty);
+
+        if (store.PendingCount() > options.MaxPending)
+            return (Results.Json(new { message = "Queue overloaded" }, statusCode: 503), string.Empty);
+
+        return (null, rawBody);
     }
 }
