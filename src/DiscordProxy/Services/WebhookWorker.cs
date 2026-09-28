@@ -151,6 +151,6 @@ public sealed class WebhookWorker : BackgroundService
     private void Bury(QueuedJob job, string error)
     {
         _store.MarkDead(job.Id, error);
-        _log.LogWarning("Dead job {JobId}: {Error}", job.Id, error);
+        _log.LogWarning("Dead job {JobId} (webhook {WebhookId}): {Error}", job.Id, job.WebhookId, error);
     }
 }

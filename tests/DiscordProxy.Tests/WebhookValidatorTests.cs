@@ -45,13 +45,18 @@ public sealed class WebhookValidatorTests
     [InlineData(@"{""content"":""hi""}", true)]
     [InlineData(@"{""content"":""""}", false)]
     [InlineData(@"{""content"":""   ""}", true)] // whitespace passes here; Discord decides
-    [InlineData(@"{""content"":123}", false)]
+    [InlineData(@"{""content"":123}", false)] // wrong type, even with valid embeds nearby
+    [InlineData(@"{""content"":123,""embeds"":[{""description"":""x""}]}", false)]
     [InlineData(@"{""embeds"":[{""description"":""x""}]}", true)]
     [InlineData(@"{""embeds"":[]}", false)]
     [InlineData(@"{""embeds"":""nope""}", false)]
+    [InlineData(@"{""embeds"":""0"",""content"":""hi""}", false)] // the "0" plugin case
+    [InlineData(@"{""embeds"":[{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""}]}", false)] // 11 embeds
     [InlineData(@"{""components"":[{""type"":1}]}", true)]
+    [InlineData(@"{""components"":""nope"",""content"":""hi""}", false)]
     [InlineData(@"{""poll"":{}}", true)]
     [InlineData(@"{""poll"":123}", false)]
+    [InlineData(@"{""poll"":[],""content"":""hi""}", false)]
     [InlineData(@"{}", false)]
     public void PayloadNeedsAtLeastOneMessageField(string json, bool valid)
     {

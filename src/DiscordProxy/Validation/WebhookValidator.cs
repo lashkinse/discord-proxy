@@ -19,18 +19,36 @@ public static class WebhookValidator
 
     /// <summary>
     /// Minimal body check: an object with at least one message field.
-    /// Deep validation is left to Discord — it returns 4xx and the job goes
-    /// dead without retries. Returns an error message, or null when valid.
+    /// Fields present with a wrong type are rejected here instead of dying
+    /// later as Discord 4xx (e.g. "embeds": "0" from a buggy plugin).
+    /// Deep validation is left to Discord. Returns an error, or null when valid.
     /// </summary>
     public static string? ValidatePayload(JsonElement root)
     {
         if (root.ValueKind != JsonValueKind.Object)
             return "Body must be a JSON object";
 
+        if (root.TryGetProperty("content", out var content) && content.ValueKind != JsonValueKind.String)
+            return "Content must be a string";
+
+        if (root.TryGetProperty("embeds", out var embeds))
+        {
+            if (embeds.ValueKind != JsonValueKind.Array)
+                return "Embeds must be an array";
+            if (embeds.GetArrayLength() > 10)
+                return "At most 10 embeds allowed";
+        }
+
+        if (root.TryGetProperty("components", out var components) && components.ValueKind != JsonValueKind.Array)
+            return "Components must be an array";
+
+        if (root.TryGetProperty("poll", out var poll) && poll.ValueKind != JsonValueKind.Object)
+            return "Poll must be an object";
+
         if (HasNonEmptyString(root, "content")
             || HasNonEmptyArray(root, "embeds")
             || HasNonEmptyArray(root, "components")
-            || (root.TryGetProperty("poll", out var poll) && poll.ValueKind == JsonValueKind.Object))
+            || (root.TryGetProperty("poll", out var pollObject) && pollObject.ValueKind == JsonValueKind.Object))
             return null;
 
         return "Cannot send an empty message";
