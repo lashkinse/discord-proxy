@@ -62,23 +62,23 @@ public static class WebhookEndpoints
                 return Results.BadRequest(new { message = "Invalid webhook id/token" });
             }
 
-            var (failure, payload, reason) = await ValidateIntakeAsync(context, store, options);
+            var (failure, body, reason) = await ValidateIntakeAsync(context, store, options);
             if (failure is not null)
             {
                 // Truncated like Discord errors elsewhere: enough to debug, not enough to spam.
-                var preview = payload.Length <= 300 ? payload : payload[..300];
+                var preview = body.Length <= 300 ? body : body[..300];
                 app.Logger.LogWarning("Rejected {WebhookId}: {Reason}. Body: {Body}", id, reason, preview);
                 return failure;
             }
 
-            var jobId = store.Enqueue(id, token, context.Request.QueryString.Value ?? string.Empty, payload);
+            var jobId = store.Enqueue(id, token, context.Request.QueryString.Value ?? string.Empty, body);
             return Results.Accepted(value: new { jobId, status = "queued" });
         });
     }
 
-    // All intake checks in one flat sequence. A null failure means the payload may be enqueued.
+    // All intake checks in one flat sequence. A null failure means the body may be enqueued.
     // The reason mirrors the response body and goes to the log next to the webhook id.
-    private static async Task<(IResult? Failure, string Payload, string? Reason)> ValidateIntakeAsync(
+    private static async Task<(IResult? Failure, string Body, string? Reason)> ValidateIntakeAsync(
         HttpContext context, QueueStore store, ProxyOptions options)
     {
         if (context.Request.ContentType is null ||
