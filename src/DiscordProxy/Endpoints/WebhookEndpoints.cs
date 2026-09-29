@@ -57,11 +57,17 @@ public static class WebhookEndpoints
             ProxyOptions options) =>
         {
             if (!WebhookValidator.IsValidId(id) || !WebhookValidator.IsValidToken(token))
+            {
+                app.Logger.LogWarning("Rejected {WebhookId}: invalid id/token", id);
                 return Results.BadRequest(new { message = "Invalid webhook id/token" });
+            }
 
-            var (failure, payload) = await ValidateIntakeAsync(context, store, options);
+            var (failure, payload, reason) = await ValidateIntakeAsync(context, store, options);
             if (failure is not null)
+            {
+                app.Logger.LogWarning("Rejected {WebhookId}: {Reason}", id, reason);
                 return failure;
+            }
 
             var jobId = store.Enqueue(id, token, context.Request.QueryString.Value ?? string.Empty, payload);
             return Results.Accepted(value: new { jobId, status = "queued" });
@@ -69,16 +75,17 @@ public static class WebhookEndpoints
     }
 
     // All intake checks in one flat sequence. A null failure means the payload may be enqueued.
-    private static async Task<(IResult? Failure, string Payload)> ValidateIntakeAsync(
+    // The reason mirrors the response body and goes to the log next to the webhook id.
+    private static async Task<(IResult? Failure, string Payload, string? Reason)> ValidateIntakeAsync(
         HttpContext context, QueueStore store, ProxyOptions options)
     {
         if (context.Request.ContentType is null ||
             !context.Request.ContentType.StartsWith(MediaTypeNames.Application.Json, StringComparison.OrdinalIgnoreCase))
-            return (Results.BadRequest(new { message = "Content-Type must be application/json" }), string.Empty);
+            return (Results.BadRequest(new { message = "Content-Type must be application/json" }), string.Empty, "bad content type");
 
         // Reject oversized bodies before reading them into memory.
         if (context.Request.ContentLength > options.MaxPayloadBytes)
-            return (Results.StatusCode(413), string.Empty);
+            return (Results.StatusCode(413), string.Empty, "body too large");
 
         string rawBody;
         try
@@ -89,11 +96,11 @@ public static class WebhookEndpoints
         }
         catch
         {
-            return (Results.BadRequest(new { message = "Cannot read body" }), string.Empty);
+            return (Results.BadRequest(new { message = "Cannot read body" }), string.Empty, "unreadable body");
         }
 
         if (rawBody.Length > options.MaxPayloadBytes)
-            return (Results.StatusCode(413), string.Empty);
+            return (Results.StatusCode(413), string.Empty, "body too large");
 
         string? payloadError;
         try
@@ -103,14 +110,14 @@ public static class WebhookEndpoints
         }
         catch (JsonException)
         {
-            return (Results.BadRequest(new { message = "Invalid JSON" }), string.Empty);
+            return (Results.BadRequest(new { message = "Invalid JSON" }), string.Empty, "invalid JSON");
         }
         if (payloadError is not null)
-            return (Results.BadRequest(new { message = payloadError }), string.Empty);
+            return (Results.BadRequest(new { message = payloadError }), string.Empty, payloadError);
 
         if (store.PendingCount() > options.MaxPending)
-            return (Results.Json(new { message = "Queue overloaded" }, statusCode: 503), string.Empty);
+            return (Results.Json(new { message = "Queue overloaded" }, statusCode: 503), string.Empty, "queue overloaded");
 
-        return (null, rawBody);
+        return (null, rawBody, null);
     }
 }
