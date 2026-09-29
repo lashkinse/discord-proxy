@@ -146,15 +146,13 @@ public sealed class ApiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task RealWebhookInfoPassesThrough()
+    public async Task UnknownWebhookPassesDiscord404Through()
     {
-        // Read-only: hits the real Discord API but posts nothing.
-        const string realId = "1553762945471742045";
-        const string realToken = "NHIEjMFXM6uiWVISvC19up4iY9CI2Eoag4qCa8az5U9bsBu3o7n4l4It307iH52SAHt-";
-        var response = await _client.GetAsync($"/api/webhooks/{realId}/{realToken}");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        // No real webhook needed: asserts status + body are forwarded as-is.
+        var response = await _client.GetAsync($"/api/webhooks/{FakeId}/{FakeToken}");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
-        Assert.Contains($"\"id\":\"{realId}\"", body);
+        Assert.Contains("Unknown Webhook", body);
     }
 
     [Fact]
