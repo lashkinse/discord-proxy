@@ -42,10 +42,23 @@ public static class WebhookValidator
                 return "Embeds must be an array";
             if (embeds.GetArrayLength() > 10)
                 return "At most 10 embeds allowed";
+            foreach (var embed in embeds.EnumerateArray())
+            {
+                if (embed.ValueKind != JsonValueKind.Object)
+                    return "Each embed must be an object";
+            }
         }
 
-        if (root.TryGetProperty("components", out var components) && components.ValueKind != JsonValueKind.Array)
-            return "Components must be an array";
+        if (root.TryGetProperty("components", out var components))
+        {
+            if (components.ValueKind != JsonValueKind.Array)
+                return "Components must be an array";
+            foreach (var component in components.EnumerateArray())
+            {
+                if (component.ValueKind != JsonValueKind.Object)
+                    return "Each component must be an object";
+            }
+        }
 
         if (root.TryGetProperty("poll", out var poll) && poll.ValueKind != JsonValueKind.Object)
             return "Poll must be an object";

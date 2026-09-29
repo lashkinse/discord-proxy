@@ -51,6 +51,7 @@ public sealed class WebhookValidatorTests
     [InlineData(@"{""embeds"":[]}", false)]
     [InlineData(@"{""embeds"":""nope""}", false)]
     [InlineData(@"{""embeds"":""0"",""content"":""hi""}", false)] // the "0" plugin case
+    [InlineData(@"{""embeds"":[""0""]}", false)] // array with a junk string, not objects
     [InlineData(@"{""embeds"":[{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""},{""description"":""x""}]}", false)] // 11 embeds
     [InlineData(@"{""components"":[{""type"":1}]}", true)]
     [InlineData(@"{""components"":""nope"",""content"":""hi""}", false)]
