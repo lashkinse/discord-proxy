@@ -65,7 +65,9 @@ public static class WebhookEndpoints
             var (failure, payload, reason) = await ValidateIntakeAsync(context, store, options);
             if (failure is not null)
             {
-                app.Logger.LogWarning("Rejected {WebhookId}: {Reason}", id, reason);
+                // Truncated like Discord errors elsewhere: enough to debug, not enough to spam.
+                var preview = payload.Length <= 300 ? payload : payload[..300];
+                app.Logger.LogWarning("Rejected {WebhookId}: {Reason}. Body: {Body}", id, reason, preview);
                 return failure;
             }
 
@@ -100,7 +102,7 @@ public static class WebhookEndpoints
         }
 
         if (rawBody.Length > options.MaxPayloadBytes)
-            return (Results.StatusCode(413), string.Empty, "body too large");
+            return (Results.StatusCode(413), rawBody, "body too large");
 
         string? payloadError;
         try
@@ -110,10 +112,10 @@ public static class WebhookEndpoints
         }
         catch (JsonException)
         {
-            return (Results.BadRequest(new { message = "Invalid JSON" }), string.Empty, "invalid JSON");
+            return (Results.BadRequest(new { message = "Invalid JSON" }), rawBody, "invalid JSON");
         }
         if (payloadError is not null)
-            return (Results.BadRequest(new { message = payloadError }), string.Empty, payloadError);
+            return (Results.BadRequest(new { message = payloadError }), rawBody, payloadError);
 
         if (store.PendingCount() > options.MaxPending)
             return (Results.Json(new { message = "Queue overloaded" }, statusCode: 503), string.Empty, "queue overloaded");
