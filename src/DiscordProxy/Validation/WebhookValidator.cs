@@ -21,6 +21,7 @@ public static class WebhookValidator
     /// Minimal body check: an object with at least one message field.
     /// Fields present with a wrong type are rejected here instead of dying
     /// later as Discord 4xx (e.g. "embeds": "0" from a buggy plugin).
+    /// Explicit JSON null counts as absent: Discord treats it the same way.
     /// Deep validation is left to Discord. Returns an error, or null when valid.
     /// </summary>
     public static string? ValidatePayload(JsonElement root)
@@ -28,7 +29,7 @@ public static class WebhookValidator
         if (root.ValueKind != JsonValueKind.Object)
             return "Body must be a JSON object";
 
-        if (root.TryGetProperty("content", out var content))
+        if (IsPresent(root, "content", out var content))
         {
             if (content.ValueKind != JsonValueKind.String)
                 return "Content must be a string";
@@ -36,7 +37,7 @@ public static class WebhookValidator
                 return "Content must be 2000 or fewer in length";
         }
 
-        if (root.TryGetProperty("embeds", out var embeds))
+        if (IsPresent(root, "embeds", out var embeds))
         {
             if (embeds.ValueKind != JsonValueKind.Array)
                 return "Embeds must be an array";
@@ -49,7 +50,7 @@ public static class WebhookValidator
             }
         }
 
-        if (root.TryGetProperty("components", out var components))
+        if (IsPresent(root, "components", out var components))
         {
             if (components.ValueKind != JsonValueKind.Array)
                 return "Components must be an array";
@@ -60,7 +61,7 @@ public static class WebhookValidator
             }
         }
 
-        if (root.TryGetProperty("poll", out var poll) && poll.ValueKind != JsonValueKind.Object)
+        if (IsPresent(root, "poll", out var poll) && poll.ValueKind != JsonValueKind.Object)
             return "Poll must be an object";
 
         // A missing property leaves poll as default(Undefined), so this also means "no poll".
@@ -71,6 +72,15 @@ public static class WebhookValidator
             return null;
 
         return "Cannot send an empty message";
+    }
+
+    // Present means "there and not JSON null".
+    private static bool IsPresent(JsonElement root, string name, out JsonElement value)
+    {
+        if (root.TryGetProperty(name, out value) && value.ValueKind != JsonValueKind.Null)
+            return true;
+        value = default;
+        return false;
     }
 
     private static bool HasNonEmptyString(JsonElement root, string name) =>

@@ -58,6 +58,10 @@ public sealed class WebhookValidatorTests
     [InlineData(@"{""poll"":{}}", true)]
     [InlineData(@"{""poll"":123}", false)]
     [InlineData(@"{""poll"":[],""content"":""hi""}", false)]
+    [InlineData(@"{""content"":null,""embeds"":[{""description"":""x""}]}", true)]
+    [InlineData(@"{""content"":""hi"",""embeds"":null}", true)]
+    [InlineData(@"{""content"":""hi"",""components"":null,""poll"":null}", true)]
+    [InlineData(@"{""content"":null,""embeds"":null}", false)]
     [InlineData(@"{}", false)]
     public void PayloadNeedsAtLeastOneMessageField(string json, bool valid)
     {
