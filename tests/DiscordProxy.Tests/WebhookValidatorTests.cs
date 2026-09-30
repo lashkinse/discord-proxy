@@ -83,6 +83,14 @@ public sealed class WebhookValidatorTests
         Assert.NotNull(Validate(@"{""content"":""" + new string('x', 2001) + @"""}"));
     }
 
+    [Fact]
+    public void EmojiCountsAsOneCharacter()
+    {
+        const string emoji = "\U0001F600"; // surrogate pair: 2 UTF-16 units, 1 rune
+        Assert.Null(Validate(@"{""content"":""" + new string('x', 1999) + emoji + @"""}"));
+        Assert.NotNull(Validate(@"{""content"":""" + new string('x', 2000) + emoji + @"""}"));
+    }
+
     private static string? Validate(string json)
     {
         using var document = JsonDocument.Parse(json);

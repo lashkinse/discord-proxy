@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -33,7 +34,7 @@ public static class WebhookValidator
         {
             if (content.ValueKind != JsonValueKind.String)
                 return "Content must be a string";
-            if (content.GetString()!.Length > 2000)
+            if (TextLength(content.GetString()!) > 2000)
                 return "Content must be 2000 or fewer in length";
         }
 
@@ -81,6 +82,15 @@ public static class WebhookValidator
             return true;
         value = default;
         return false;
+    }
+
+    // Characters, not UTF-16 units: an emoji counts as one, like Discord does.
+    private static int TextLength(string value)
+    {
+        var count = 0;
+        foreach (var _ in value.EnumerateRunes())
+            count++;
+        return count;
     }
 
     private static bool HasNonEmptyString(JsonElement root, string name) =>
