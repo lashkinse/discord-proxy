@@ -123,6 +123,21 @@ public sealed class WorkerTests : IDisposable
     }
 
     [Fact]
+    public async Task FailingStreamIsPacedToo()
+    {
+        // Two poison jobs back to back: the second must wait for the pace
+        // interval instead of firing instantly after the first failure.
+        _sender.Outcomes.Enqueue(new Permanent("HTTP 400"));
+        _sender.Outcomes.Enqueue(new Permanent("HTTP 400"));
+        Enqueue();
+        Enqueue();
+        await RunWorkerUntilAsync(() => _sender.Calls >= 1, timeoutMs: 5000);
+        await Task.Delay(1000);
+        Assert.Equal(1, _sender.Calls);
+        Assert.Equal(1, _store.PendingCount());
+    }
+
+    [Fact]
     public async Task LaterJobsWaitForBlockedHead()
     {
         // Head gets a long 429; the second job must not jump ahead of it.

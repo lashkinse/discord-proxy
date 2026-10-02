@@ -148,6 +148,12 @@ public sealed class WebhookWorker : BackgroundService
             {
                 return; // Shutting down — the job stays queued.
             }
+            // Every completed attempt paces the webhook, even a failed one:
+            // otherwise an all-failing stream would hammer Discord with no gaps.
+            lock (_sync)
+            {
+                _pacer.MarkSent(job.WebhookId, DateTime.UtcNow);
+            }
             ApplyOutcome(job, outcome);
         }
         catch (Exception ex)
@@ -169,10 +175,6 @@ public sealed class WebhookWorker : BackgroundService
         switch (outcome)
         {
             case Delivered delivered:
-                lock (_sync)
-                {
-                    _pacer.MarkSent(job.WebhookId, DateTime.UtcNow);
-                }
                 _store.Delete(job.Id);
                 _log.LogDebug("Delivered job {JobId} ({WebhookId}) -> {Status}", job.Id, job.WebhookId, delivered.StatusCode);
                 break;
